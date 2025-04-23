@@ -1,0 +1,67 @@
+---
+- name: Deploy .NET Web Application
+  hosts: local
+  vars:
+    project_root: "{{ playbook_dir }}/.."
+    deploy_dir: "{{ playbook_dir }}/../deploy"
+    prod_dir: "{{ playbook_dir }}/../production"
+    blue_dir: "{{ playbook_dir }}/../production/blue"
+    green_dir: "{{ playbook_dir }}/../production/green"
+    active_link: "{{ playbook_dir }}/../production/active"
+    
+  tasks:
+    - name: Install .NET SDK
+      when: ansible_system == 'Linux'
+      apt:
+        name: dotnet-sdk-7.0
+        state: present
+      become: yes
+      ignore_errors: yes
+      
+    # This task can be modified for Windows environments
+    # using the win_shell module
+
+    - name: Create deployment directories
+      file:
+        path: "{{ item }}"
+        state: directory
+      with_items:
+        - "{{ deploy_dir }}"
+        - "{{ prod_dir }}"
+        - "{{ blue_dir }}"
+        - "{{ green_dir }}"
+
+    - name: Build and publish application
+      shell: |
+        cd {{ project_root }}
+        dotnet publish WebApp/WebApp.csproj -c Release -o {{ deploy_dir }}
+      args:
+        chdir: "{{ project_root }}"
+
+    - name: Check current active deployment
+      stat:
+        path: "{{ active_link }}"
+      register: active_symlink
+
+    - name: Determine new deployment directory
+      set_fact:
+        new_deployment: "{{ blue_dir if active_symlink.stat.exists and active_symlink.stat.lnk_target == green_dir else green_dir }}"
+
+    - name: Clean new deployment directory
+      file:
+        path: "{{ new_deployment }}/*"
+        state: absent
+      ignore_errors: yes
+      
+    - name: Copy application to new deployment directory
+      copy:
+        src: "{{ deploy_dir }}/"
+        dest: "{{ new_deployment }}/"
+        remote_src: yes
+
+    - name: Update active symlink
+      file:
+        src: "{{ new_deployment }}"
+        dest: "{{ active_link }}"
+        state: link
+        force: yes
