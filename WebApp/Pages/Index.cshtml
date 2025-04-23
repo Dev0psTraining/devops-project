@@ -1,0 +1,37 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">DevOps Project</h1>
+    <p>A simple ASP.NET Core web application for DevOps pipeline demonstration.</p>
+</div>
+
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <div class="card">
+            <div class="card-header">
+                Submit a Message
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="form-group">
+                        <label asp-for="Message">Your Message</label>
+                        <input asp-for="Message" class="form-control" />
+                        <span asp-validation-for="Message" class="text-danger"></span>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-3">Submit</button>
+                </form>
+                
+                @if (!string.IsNullOrEmpty(Model.SubmittedMessage))
+                {
+                    <div class="alert alert-success mt-3">
+                        <strong>Submitted Message:</strong> @Model.SubmittedMessage
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
